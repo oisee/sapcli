@@ -9,3 +9,6 @@ build/
 dist/
 sapcli.egg-info/
 *openrc
+
+# Analysis directories
+other-adt/
