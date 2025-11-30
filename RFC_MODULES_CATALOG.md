@@ -1,503 +1,503 @@
-# Справочник RFC функциональных модулей в sapcli
+# RFC Function Modules Catalog in sapcli
 
-**Дата создания:** 2025-11-30
-**Проект:** oisee/sapcli - Command Line Interface for SAP products
-**Всего уникальных RFC модулей:** 19
-
----
-
-## Оглавление
-
-1. [Управление пользователями (User Management)](#1-управление-пользователями-user-management)
-2. [Управление безопасностью и SSL (STRUST)](#2-управление-безопасностью-и-ssl-strust)
-3. [Произвольное выполнение RFC](#3-произвольное-выполнение-rfc)
-4. [Обработка BAPI ответов](#4-обработка-bapi-ответов)
-5. [Сводная таблица всех модулей](#5-сводная-таблица-всех-модулей)
+**Created:** 2025-11-30
+**Project:** oisee/sapcli - Command Line Interface for SAP products
+**Total unique RFC modules:** 19
 
 ---
 
-## 1. Управление пользователями (User Management)
+## Table of Contents
 
-**Файл:** `sap/rfc/user.py`
-**Команда CLI:** `sapcli user`
-**Количество модулей:** 6
+1. [User Management](#1-user-management)
+2. [Security and SSL Management (STRUST)](#2-security-and-ssl-management-strust)
+3. [Arbitrary RFC Execution](#3-arbitrary-rfc-execution)
+4. [BAPI Response Handling](#4-bapi-response-handling)
+5. [Summary Tables](#5-summary-tables)
+
+---
+
+## 1. User Management
+
+**File:** `sap/rfc/user.py`
+**CLI Command:** `sapcli user`
+**Module Count:** 6
 
 ### 1.1 BAPI_USER_CREATE1
 
-**Назначение:** Создание нового ABAP пользователя
+**Purpose:** Create a new ABAP user
 
-**Место вызова:** `UserManager.create_user()` (строка 427)
+**Invocation:** `UserManager.create_user()` (line 427)
 
-**Входные параметры:**
-- `USERNAME` - имя пользователя (логин)
-- `ADDRESS` - структура с данными:
-  - `FIRSTNAME` - имя
-  - `LASTNAME` - фамилия
-  - `E_MAIL` - email адрес
-- `PASSWORD` - структура:
-  - `BAPIPWD` - пароль (для типа Service) или dummy-пароль
-- `ALIAS` - структура:
-  - `USERALIAS` - алиас для HTTP аутентификации
-- `LOGONDATA` - структура:
-  - `USTYP` - тип пользователя (A=Dialog, B=Service, C=Communications Data, S=System)
-  - `CLASS` - группа пользователя
-  - `GLTGV` - дата начала валидности (формат YYYYMMDD)
-  - `GLTGB` - дата окончания валидности (формат YYYYMMDD)
+**Input Parameters:**
+- `USERNAME` - user login name
+- `ADDRESS` - structure with data:
+  - `FIRSTNAME` - first name
+  - `LASTNAME` - last name
+  - `E_MAIL` - email address
+- `PASSWORD` - structure:
+  - `BAPIPWD` - password (for Service type) or dummy password
+- `ALIAS` - structure:
+  - `USERALIAS` - alias for HTTP authentication
+- `LOGONDATA` - structure:
+  - `USTYP` - user type (A=Dialog, B=Service, C=Communications Data, S=System)
+  - `CLASS` - user group
+  - `GLTGV` - valid from date (format YYYYMMDD)
+  - `GLTGB` - valid to date (format YYYYMMDD)
 
-**Выходные параметры:**
-- `RETURN` - таблица BAPIRET2 с результатами операции
+**Output Parameters:**
+- `RETURN` - BAPIRET2 table with operation results
 
-**Особенности:**
-- Для пользователей типа Dialog (A) и Communications Data (C) после создания вызывается `SUSR_USER_CHANGE_PASSWORD_RFC`
-- По умолчанию дата начала = сегодня, дата окончания = 20991231
+**Features:**
+- For Dialog (A) and Communications Data (C) users, `SUSR_USER_CHANGE_PASSWORD_RFC` is called after creation
+- Default valid from = today, valid to = 20991231
 
 ---
 
 ### 1.2 BAPI_USER_CHANGE
 
-**Назначение:** Изменение существующего ABAP пользователя
+**Purpose:** Modify an existing ABAP user
 
-**Место вызова:** `UserManager.change_user()` (строка 443)
+**Invocation:** `UserManager.change_user()` (line 443)
 
-**Входные параметры:**
-- `USERNAME` - имя пользователя
-- `PASSWORD` - новый пароль (опционально)
-- `PASSWORDX` - структура с флагом `BAPIPWD='X'` (если меняется пароль)
-- `ALIAS` - новый алиас (опционально)
-- `ALIASX` - структура с флагом `BAPIALIAS='X'` (если меняется алиас)
+**Input Parameters:**
+- `USERNAME` - user name
+- `PASSWORD` - new password (optional)
+- `PASSWORDX` - structure with flag `BAPIPWD='X'` (if password is being changed)
+- `ALIAS` - new alias (optional)
+- `ALIASX` - structure with flag `BAPIALIAS='X'` (if alias is being changed)
 
-**Выходные параметры:**
-- `RETURN` - таблица BAPIRET2
+**Output Parameters:**
+- `RETURN` - BAPIRET2 table
 
-**Особенности:**
-- Перед вызовом выполняется `BAPI_USER_GET_DETAIL` для определения типа пользователя
-- Для Dialog и Communications Data типов дополнительно вызывается `SUSR_USER_CHANGE_PASSWORD_RFC`
+**Features:**
+- Before invocation, `BAPI_USER_GET_DETAIL` is executed to determine user type
+- For Dialog and Communications Data types, `SUSR_USER_CHANGE_PASSWORD_RFC` is additionally called
 
 ---
 
 ### 1.3 BAPI_USER_GET_DETAIL
 
-**Назначение:** Получение детальной информации о пользователе
+**Purpose:** Retrieve detailed information about a user
 
-**Место вызова:** `UserManager.fetch_user_details()` (строки 420-422)
+**Invocation:** `UserManager.fetch_user_details()` (lines 420-422)
 
-**Входные параметры:**
-- `USERNAME` - имя пользователя
+**Input Parameters:**
+- `USERNAME` - user name
 
-**Выходные параметры:**
-- `LOGONDATA` - структура с данными авторизации (включая `USTYP` - тип пользователя)
-- `ADDRESS` - адресные данные
-- `RETURN` - таблица BAPIRET2
-- Множество других структур с детальной информацией
+**Output Parameters:**
+- `LOGONDATA` - structure with authorization data (including `USTYP` - user type)
+- `ADDRESS` - address data
+- `RETURN` - BAPIRET2 table
+- Many other structures with detailed information
 
-**Использование:**
-- Получение типа пользователя (`USTYP`) перед изменением пароля
+**Usage:**
+- Retrieve user type (`USTYP`) before password change
 
 ---
 
 ### 1.4 BAPI_USER_ACTGROUPS_ASSIGN
 
-**Назначение:** Назначение ролей (Activity Groups) пользователю
+**Purpose:** Assign roles (Activity Groups) to a user
 
-**Место вызова:** `UserManager.assign_roles()` (строка 460)
+**Invocation:** `UserManager.assign_roles()` (line 460)
 
-**Входные параметры:**
-- `USERNAME` - имя пользователя
-- `ACTIVITYGROUPS` - таблица с ролями:
-  - `AGR_NAME` - имя роли
-  - `FROM_DAT` - дата начала валидности (по умолчанию = сегодня)
-  - `TO_DAT` - дата окончания валидности (по умолчанию = 20991231)
+**Input Parameters:**
+- `USERNAME` - user name
+- `ACTIVITYGROUPS` - table with roles:
+  - `AGR_NAME` - role name
+  - `FROM_DAT` - valid from date (default = today)
+  - `TO_DAT` - valid to date (default = 20991231)
 
-**Выходные параметры:**
-- `RETURN` - таблица BAPIRET2
+**Output Parameters:**
+- `RETURN` - BAPIRET2 table
 
 ---
 
 ### 1.5 BAPI_USER_PROFILES_ASSIGN
 
-**Назначение:** Назначение профилей авторизации пользователю
+**Purpose:** Assign authorization profiles to a user
 
-**Место вызова:** `UserManager.assign_profiles()` (строка 470)
+**Invocation:** `UserManager.assign_profiles()` (line 470)
 
-**Входные параметры:**
-- `USERNAME` - имя пользователя
-- `PROFILES` - таблица с профилями:
-  - `BAPIPROF` - имя профиля
+**Input Parameters:**
+- `USERNAME` - user name
+- `PROFILES` - table with profiles:
+  - `BAPIPROF` - profile name
 
-**Выходные параметры:**
-- `RETURN` - таблица BAPIRET2
+**Output Parameters:**
+- `RETURN` - BAPIRET2 table
 
 ---
 
 ### 1.6 SUSR_USER_CHANGE_PASSWORD_RFC
 
-**Назначение:** Изменение продуктивного пароля пользователя (для Dialog и Communications Data типов)
+**Purpose:** Change productive password for user (for Dialog and Communications Data types)
 
-**Место вызова:** `UserManager._call_user_change_password()` (строка 385)
+**Invocation:** `UserManager._call_user_change_password()` (line 385)
 
-**Входные параметры:**
-- `BNAME` - имя пользователя
-- `PASSWORD` - текущий пароль (или dummy-пароль)
-- `NEW_PASSWORD` - новый пароль
-- `USE_BAPI_RETURN` - флаг (1 = использовать BAPI формат ответа)
+**Input Parameters:**
+- `BNAME` - user name
+- `PASSWORD` - current password (or dummy password)
+- `NEW_PASSWORD` - new password
+- `USE_BAPI_RETURN` - flag (1 = use BAPI response format)
 
-**Выходные параметры:**
-- `RETURN` - BAPIRET2 структура
+**Output Parameters:**
+- `RETURN` - BAPIRET2 structure
 
-**Особенности:**
-- Используется обходной маневр: при создании устанавливается dummy-пароль, затем он меняется на реальный
-- Dummy-пароль берется из переменной окружения `SAPCLI_ABAP_USER_DUMMY_PASSWORD` (по умолчанию: `DummyPwd123!`)
-- Применяется только для типов: A (Dialog), C (Communications Data)
-- Для типа B (Service) пароль устанавливается напрямую через BAPI_USER_CREATE1/CHANGE
+**Features:**
+- Workaround is used: dummy password is set during creation, then changed to real password
+- Dummy password is taken from environment variable `SAPCLI_ABAP_USER_DUMMY_PASSWORD` (default: `DummyPwd123!`)
+- Applied only for types: A (Dialog), C (Communications Data)
+- For type B (Service), password is set directly via BAPI_USER_CREATE1/CHANGE
 
 ---
 
-## 2. Управление безопасностью и SSL (STRUST)
+## 2. Security and SSL Management (STRUST)
 
-**Файл:** `sap/rfc/strust.py`
-**Команда CLI:** `sapcli strust`
-**Количество модулей:** 13
+**File:** `sap/rfc/strust.py`
+**CLI Command:** `sapcli strust`
+**Module Count:** 13
 
 ### 2.1 SSFR_PSE_CHECK
 
-**Назначение:** Проверка существования и статуса PSE (Personal Security Environment) хранилища
+**Purpose:** Check existence and status of PSE (Personal Security Environment) storage
 
-**Место вызова:** `SSLCertStorage.exists()` (строки 148-151)
+**Invocation:** `SSLCertStorage.exists()` (lines 148-151)
 
-**Входные параметры:**
-- `IS_STRUST_IDENTITY` - структура идентификации:
-  - `PSE_CONTEXT` - контекст PSE (например: 'SSLS', 'SSLC')
-  - `PSE_APPLIC` - приложение PSE (например: 'DFAULT', 'ANONYM')
+**Input Parameters:**
+- `IS_STRUST_IDENTITY` - identification structure:
+  - `PSE_CONTEXT` - PSE context (e.g., 'SSLS', 'SSLC')
+  - `PSE_APPLIC` - PSE application (e.g., 'DFAULT', 'ANONYM')
 
-**Выходные параметры:**
-- `ET_BAPIRET2` - таблица с результатами проверки
+**Output Parameters:**
+- `ET_BAPIRET2` - table with check results
 
-**Коды возврата:**
-- `TYPE='E', NUMBER='031'` - PSE не существует
-- `TYPE='S'` - PSE существует и в порядке
-- Другие ошибки - PSE поврежден
+**Return Codes:**
+- `TYPE='E', NUMBER='031'` - PSE does not exist
+- `TYPE='S'` - PSE exists and is OK
+- Other errors - PSE is corrupted
 
 ---
 
 ### 2.2 SSFR_PSE_CREATE
 
-**Назначение:** Создание нового PSE файла с криптографическими ключами
+**Purpose:** Create a new PSE file with cryptographic keys
 
-**Место вызова:** `SSLCertStorage.create_pse()` (строка 185)
+**Invocation:** `SSLCertStorage.create_pse()` (line 185)
 
-**Входные параметры:**
-- `IS_STRUST_IDENTITY` - идентификация PSE
-- `IV_ALG` - алгоритм шифрования:
+**Input Parameters:**
+- `IS_STRUST_IDENTITY` - PSE identification
+- `IV_ALG` - encryption algorithm:
   - `R` = RSA
   - `S` = RSAwithSHA256
   - `D` = DSA
   - `G` = GOST_R_34.10-94
   - `H` = GOST_R_34.10-2001
   - `X` = CCL (Custom Crypto Library)
-- `IV_KEYLEN` - длина ключа в битах (по умолчанию: 2048)
-- `IV_REPLACE_EXISTING_PSE` - флаг перезаписи ('X' = перезаписать, '-' = ошибка если существует)
-- `IV_DN` - Distinguished Name (опционально)
+- `IV_KEYLEN` - key length in bits (default: 2048)
+- `IV_REPLACE_EXISTING_PSE` - overwrite flag ('X' = overwrite, '-' = error if exists)
+- `IV_DN` - Distinguished Name (optional)
 
-**Выходные параметры:**
-- `ET_BAPIRET2` - таблица результатов
+**Output Parameters:**
+- `ET_BAPIRET2` - results table
 
 ---
 
 ### 2.3 SSFR_PSE_REMOVE
 
-**Назначение:** Удаление PSE файла из хранилища STRUST
+**Purpose:** Delete PSE file from STRUST storage
 
-**Место вызова:** `SSLCertStorage.remove()` (строки 215-218)
+**Invocation:** `SSLCertStorage.remove()` (lines 215-218)
 
-**Входные параметры:**
-- `IS_STRUST_IDENTITY` - идентификация PSE
+**Input Parameters:**
+- `IS_STRUST_IDENTITY` - PSE identification
 
-**Выходные параметры:**
-- `ET_BAPIRET2` - таблица результатов
+**Output Parameters:**
+- `ET_BAPIRET2` - results table
 
 ---
 
 ### 2.4 SSFR_PSE_UPLOAD_XSTRING
 
-**Назначение:** Загрузка PSE файла из бинарных данных (XSTRING)
+**Purpose:** Upload PSE file from binary data (XSTRING)
 
-**Место вызова:** `SSLCertStorage.upload()` (строки 236-239)
+**Invocation:** `SSLCertStorage.upload()` (lines 236-239)
 
-**Входные параметры:**
-- `IS_STRUST_IDENTITY` - идентификация PSE
-- `IV_PSE_XSTRING` - бинарное содержимое PSE файла
-- `IV_REPLACE_EXISTING_PSE` - флаг перезаписи ('X' или '-')
-- `IV_PSEPIN` - пароль PSE файла (опционально)
+**Input Parameters:**
+- `IS_STRUST_IDENTITY` - PSE identification
+- `IV_PSE_XSTRING` - binary PSE file content
+- `IV_REPLACE_EXISTING_PSE` - overwrite flag ('X' or '-')
+- `IV_PSEPIN` - PSE file password (optional)
 
-**Выходные параметры:**
-- `ET_BAPIRET2` - таблица результатов
+**Output Parameters:**
+- `ET_BAPIRET2` - results table
 
-**Использование:**
-- Импорт PSE файла, созданного внешними средствами (OpenSSL, etc.)
+**Usage:**
+- Import PSE file created by external tools (OpenSSL, etc.)
 
 ---
 
 ### 2.5 SSFR_IDENTITY_CREATE
 
-**Назначение:** Создание новой STRUST Application Identity (регистрация PSE в системе)
+**Purpose:** Create a new STRUST Application Identity (register PSE in the system)
 
-**Место вызова:** `SSLCertStorage.create_identity()` (строки 196-200)
+**Invocation:** `SSLCertStorage.create_identity()` (lines 196-200)
 
-**Входные параметры:**
-- `IS_STRUST_IDENTITY` - структура:
-  - `PSE_CONTEXT` - контекст
-  - `PSE_APPLIC` - приложение
-  - `PSE_DESCRIPT` - описание (опционально)
-  - `SPRSL` - языковой код SAP (опционально)
-- `IV_REPLACE_EXISTING_APPL` - флаг перезаписи ('X' или '-')
+**Input Parameters:**
+- `IS_STRUST_IDENTITY` - structure:
+  - `PSE_CONTEXT` - context
+  - `PSE_APPLIC` - application
+  - `PSE_DESCRIPT` - description (optional)
+  - `SPRSL` - SAP language code (optional)
+- `IV_REPLACE_EXISTING_APPL` - overwrite flag ('X' or '-')
 
-**Выходные параметры:**
-- `ET_BAPIRET2` - таблица результатов
+**Output Parameters:**
+- `ET_BAPIRET2` - results table
 
 ---
 
 ### 2.6 SSFR_GET_ALL_STRUST_IDENTITIES
 
-**Назначение:** Получение списка всех существующих STRUST идентификаций в системе
+**Purpose:** Retrieve list of all existing STRUST identities in the system
 
-**Место вызова:** `list_identities()` (строка 358)
+**Invocation:** `list_identities()` (line 358)
 
-**Входные параметры:** нет
+**Input Parameters:** none
 
-**Выходные параметры:**
-- `ET_STRUST_IDENTITIES` - таблица всех зарегистрированных PSE идентификаций
-- `ET_BAPIRET2` - таблица результатов
+**Output Parameters:**
+- `ET_STRUST_IDENTITIES` - table of all registered PSE identities
+- `ET_BAPIRET2` - results table
 
-**Использование:**
-- Получение списка всех доступных PSE хранилищ для администрирования
+**Usage:**
+- Get list of all available PSE storages for administration
 
 ---
 
 ### 2.7 SSFR_GET_OWNCERTIFICATE
 
-**Назначение:** Получение собственного (системного) сертификата из PSE
+**Purpose:** Retrieve the system's own certificate from PSE
 
-**Место вызова:** `SSLCertStorage.get_own_certificate()` (строки 278-281)
+**Invocation:** `SSLCertStorage.get_own_certificate()` (lines 278-281)
 
-**Входные параметры:**
-- `IS_STRUST_IDENTITY` - идентификация PSE
+**Input Parameters:**
+- `IS_STRUST_IDENTITY` - PSE identification
 
-**Выходные параметры:**
-- `EV_CERTIFICATE` - X.509 сертификат в Base64 формате
-- `ET_BAPIRET2` - таблица результатов
+**Output Parameters:**
+- `EV_CERTIFICATE` - X.509 certificate in Base64 format
+- `ET_BAPIRET2` - results table
 
-**Использование:**
-- Экспорт собственного сертификата для предоставления партнерам
+**Usage:**
+- Export own certificate for sharing with partners
 
 ---
 
 ### 2.8 SSFR_GET_CERTIFICATELIST
 
-**Назначение:** Получение списка доверенных сертификатов из PSE хранилища
+**Purpose:** Retrieve list of trusted certificates from PSE storage
 
-**Место вызова:** `SSLCertStorage.get_certificates()` (строки 292-295)
+**Invocation:** `SSLCertStorage.get_certificates()` (lines 292-295)
 
-**Входные параметры:**
-- `IS_STRUST_IDENTITY` - идентификация PSE
+**Input Parameters:**
+- `IS_STRUST_IDENTITY` - PSE identification
 
-**Выходные параметры:**
-- `ET_CERTIFICATELIST` - таблица X.509 сертификатов в бинарном формате
+**Output Parameters:**
+- `ET_CERTIFICATELIST` - table of X.509 certificates in binary format
 
-**Использование:**
-- Просмотр всех импортированных CA сертификатов
+**Usage:**
+- View all imported CA certificates
 
 ---
 
 ### 2.9 SSFR_PUT_CERTIFICATE
 
-**Назначение:** Добавление X.509 сертификата в список доверенных (trust list)
+**Purpose:** Add X.509 certificate to the trusted certificates list
 
-**Место вызова:** `SSLCertStorage.put_certificate()` (строки 252-256)
+**Invocation:** `SSLCertStorage.put_certificate()` (lines 252-256)
 
-**Входные параметры:**
-- `IS_STRUST_IDENTITY` - идентификация PSE
-- `IV_CERTIFICATE` - бинарные данные X.509 сертификата
+**Input Parameters:**
+- `IS_STRUST_IDENTITY` - PSE identification
+- `IV_CERTIFICATE` - binary X.509 certificate data
 
-**Выходные параметры:**
-- `ET_BAPIRET2` - таблица результатов
+**Output Parameters:**
+- `ET_BAPIRET2` - results table
 
-**Коды ошибок:**
-- `TYPE='E', NUMBER='522'` - сертификат уже существует
+**Error Codes:**
+- `TYPE='E', NUMBER='522'` - certificate already exists
 
-**Использование:**
-- Импорт CA сертификатов для установления доверия
+**Usage:**
+- Import CA certificates to establish trust
 
 ---
 
 ### 2.10 SSFR_PUT_CERTRESPONSE
 
-**Назначение:** Загрузка подписанного Identity Certificate (ответ от Certificate Authority)
+**Purpose:** Upload signed Identity Certificate (response from Certificate Authority)
 
-**Место вызова:** `SSLCertStorage.put_identity_cert()` (строки 327-333)
+**Invocation:** `SSLCertStorage.put_identity_cert()` (lines 327-333)
 
-**Входные параметры:**
-- `IS_STRUST_IDENTITY` - идентификация PSE
-- `IT_CERTRESPONSE` - таблица строк (каждая по 80 символов) с содержимым сертификата
-- `IV_CERTRESPONSE_LEN` - общая длина сертификата в байтах
-- `IV_PSEPIN` - пароль PSE (обычно пустой)
+**Input Parameters:**
+- `IS_STRUST_IDENTITY` - PSE identification
+- `IT_CERTRESPONSE` - table of strings (80 characters each) with certificate content
+- `IV_CERTRESPONSE_LEN` - total certificate length in bytes
+- `IV_PSEPIN` - PSE password (usually empty)
 
-**Выходные параметры:**
-- `ET_BAPIRET2` - таблица результатов
+**Output Parameters:**
+- `ET_BAPIRET2` - results table
 
-**Особенности:**
-- Сертификат должен быть разбит на строки по 80 символов
-- Используется класс `PKCResponseABAPData` для форматирования данных
+**Features:**
+- Certificate must be split into 80-character strings
+- `PKCResponseABAPData` class is used for data formatting
 
 **Workflow:**
-1. Создать PSE с `SSFR_PSE_CREATE`
-2. Получить CSR с `SSFR_GET_CERTREQUEST`
-3. Подписать CSR в Certificate Authority
-4. Загрузить подписанный сертификат с `SSFR_PUT_CERTRESPONSE`
+1. Create PSE with `SSFR_PSE_CREATE`
+2. Get CSR with `SSFR_GET_CERTREQUEST`
+3. Sign CSR at Certificate Authority
+4. Upload signed certificate with `SSFR_PUT_CERTRESPONSE`
 
 ---
 
 ### 2.11 SSFR_GET_CERTREQUEST
 
-**Назначение:** Получение Certificate Signing Request (CSR) для отправки в Certificate Authority
+**Purpose:** Retrieve Certificate Signing Request (CSR) for sending to Certificate Authority
 
-**Место вызова:** `SSLCertStorage.get_csr()` (строки 311-314)
+**Invocation:** `SSLCertStorage.get_csr()` (lines 311-314)
 
-**Входные параметры:**
-- `IS_STRUST_IDENTITY` - идентификация PSE
+**Input Parameters:**
+- `IS_STRUST_IDENTITY` - PSE identification
 
-**Выходные параметры:**
-- `ET_CERTREQUEST` - таблица строк с CSR в формате PEM
-- `ET_BAPIRET2` - таблица результатов
+**Output Parameters:**
+- `ET_CERTREQUEST` - table of strings with CSR in PEM format
+- `ET_BAPIRET2` - results table
 
-**Использование:**
-- Генерация CSR для получения подписанного сертификата от CA
+**Usage:**
+- Generate CSR to obtain signed certificate from CA
 
 ---
 
 ### 2.12 SSFR_PARSE_CERTIFICATE
 
-**Назначение:** Парсинг и извлечение информации из X.509 сертификата
+**Purpose:** Parse and extract information from X.509 certificate
 
-**Места вызова:**
-- `SSLCertStorage.parse_certificate()` (строки 301-304)
-- `iter_storage_certificates()` (строка 372)
+**Invocations:**
+- `SSLCertStorage.parse_certificate()` (lines 301-304)
+- `iter_storage_certificates()` (line 372)
 
-**Входные параметры:**
-- `IV_CERTIFICATE` - бинарные данные X.509 сертификата
+**Input Parameters:**
+- `IV_CERTIFICATE` - binary X.509 certificate data
 
-**Выходные параметры:**
-- Структура с деталями сертификата:
-  - Issuer (издатель)
-  - Subject (владелец)
-  - Serial Number (серийный номер)
-  - Validity dates (даты валидности)
+**Output Parameters:**
+- Structure with certificate details:
+  - Issuer
+  - Subject
+  - Serial Number
+  - Validity dates
   - Public key info
   - Extensions
 
-**Использование:**
-- Просмотр деталей сертификата перед импортом
-- Валидация сертификатов
+**Usage:**
+- View certificate details before import
+- Certificate validation
 
 ---
 
 ### 2.13 ICM_SSL_PSE_CHANGED
 
-**Назначение:** Уведомление ICM (Internet Communication Manager) об изменениях в PSE
+**Purpose:** Notify ICM (Internet Communication Manager) about PSE changes
 
-**Место вызова:** `notify_icm_changed_pse()` (строка 352)
+**Invocation:** `notify_icm_changed_pse()` (line 352)
 
-**Входные параметры:** нет
+**Input Parameters:** none
 
-**Выходные параметры:** нет
+**Output Parameters:** none
 
-**Использование:**
-- ОБЯЗАТЕЛЬНЫЙ вызов после любых изменений PSE
-- Заставляет ICM перечитать PSE без перезапуска системы
-- Критично для активации новых сертификатов в SSL соединениях
+**Usage:**
+- MANDATORY call after any PSE changes
+- Forces ICM to reload PSE without system restart
+- Critical for activating new certificates in SSL connections
 
 ---
 
-### Стандартные PSE идентификации
+### Standard PSE Identities
 
-Определены в `IDENTITY_MAPPING`:
+Defined in `IDENTITY_MAPPING`:
 
-| Константа | PSE_CONTEXT | PSE_APPLIC | Назначение |
-|-----------|-------------|------------|-----------|
-| `server_standard` | SSLS | DFAULT | SSL Server (стандартный HTTPS сервер) |
+| Constant | PSE_CONTEXT | PSE_APPLIC | Purpose |
+|----------|-------------|------------|---------|
+| `server_standard` | SSLS | DFAULT | SSL Server (standard HTTPS server) |
 | `client_anonymous` | SSLC | ANONYM | Anonymous SSL Client |
 | `client_standard` | SSLC | DFAULT | Standard SSL Client |
 
 ---
 
-## 3. Произвольное выполнение RFC
+## 3. Arbitrary RFC Execution
 
-**Файл:** `sap/cli/startrfc.py`
-**Команда CLI:** `sapcli startrfc <FM_NAME>`
+**File:** `sap/cli/startrfc.py`
+**CLI Command:** `sapcli startrfc <FM_NAME>`
 
-### 3.1 Динамический вызов любого RFC модуля
+### 3.1 Dynamic Invocation of Any RFC Module
 
-**Место вызова:** `startrfc()` (строка 116)
+**Invocation:** `startrfc()` (line 116)
 
-**Возможности:**
-- Вызов **любого** RFC-enabled функционального модуля по имени
-- Передача параметров в формате JSON
-- Поддержка дополнительных типов параметров через флаги CLI
+**Capabilities:**
+- Invoke **any** RFC-enabled function module by name
+- Pass parameters in JSON format
+- Support for additional parameter types via CLI flags
 
-**Форматы параметров:**
+**Parameter Formats:**
 
-1. **JSON (основной формат):**
+1. **JSON (primary format):**
 ```bash
 sapcli startrfc RFC_SYSTEM_INFO '{}'
 sapcli startrfc BAPI_USER_GET_DETAIL '{"USERNAME": "DEVELOPER"}'
 ```
 
-2. **Чтение из stdin:**
+2. **Read from stdin:**
 ```bash
 echo '{"QUERY": "SELECT * FROM MARA"}' | sapcli startrfc MY_RFC_FM -
 ```
 
-3. **String параметры (-S):**
+3. **String parameters (-S):**
 ```bash
 sapcli startrfc BAPI_USER_CREATE1 '{}' -S USERNAME:TESTUSER -S ADDRESS.FIRSTNAME:John
 ```
 
-4. **Integer параметры (-I):**
+4. **Integer parameters (-I):**
 ```bash
 sapcli startrfc Z_CUSTOM_FM '{}' -I MAX_ROWS:1000 -I CLIENT:100
 ```
 
-5. **File параметры (-F):**
+5. **File parameters (-F):**
 ```bash
 sapcli startrfc Z_UPLOAD_FILE '{}' -F FILE_CONTENT:/path/to/file.bin
 ```
 
-**Режимы проверки результата (-c):**
+**Result Check Modes (-c):**
 
-1. **raw (по умолчанию)** - вывести сырой ответ без проверок
-2. **bapi** - проверить структуру RETURN и вернуть код ошибки при TYPE='E'
+1. **raw (default)** - output raw response without checks
+2. **bapi** - check RETURN structure and return error code on TYPE='E'
 
-**Форматы вывода (-o):**
+**Output Formats (-o):**
 
-1. **human (по умолчанию)** - pretty-printed формат
-2. **json** - JSON формат (bytes конвертируются в Base64)
+1. **human (default)** - pretty-printed format
+2. **json** - JSON format (bytes converted to Base64)
 
-**Примеры использования:**
+**Usage Examples:**
 
 ```bash
-# Получение информации о системе
+# Get system information
 sapcli startrfc RFC_SYSTEM_INFO '{}'
 
-# Создание пользователя с проверкой BAPI ответа
+# Create user with BAPI response check
 sapcli startrfc BAPI_USER_CREATE1 \
   '{"USERNAME":"TEST001","PASSWORD":{"BAPIPWD":"Init1234"},"LOGONDATA":{"USTYP":"B"}}' \
   -c bapi
 
-# Вывод в JSON файл
+# Output to JSON file
 sapcli startrfc RFC_READ_TABLE \
   '{"QUERY_TABLE":"USR02","DELIMITER":"|"}' \
   -o json -R /tmp/response.json
 
-# Загрузка файла
+# Upload file
 sapcli startrfc Z_UPLOAD_BINARY '{}' \
   -S FILENAME:document.pdf \
   -F BINARY_DATA:/path/to/document.pdf
@@ -505,54 +505,54 @@ sapcli startrfc Z_UPLOAD_BINARY '{}' \
 
 ---
 
-## 4. Обработка BAPI ответов
+## 4. BAPI Response Handling
 
-**Файл:** `sap/rfc/bapi.py`
+**File:** `sap/rfc/bapi.py`
 
-### 4.1 Класс BAPIReturn
+### 4.1 BAPIReturn Class
 
-Универсальный обработчик BAPI ответов (структура RETURN).
+Universal handler for BAPI responses (RETURN structure).
 
-**Типы сообщений BAPI (BAPI_MTYPE):**
+**BAPI Message Types (BAPI_MTYPE):**
 
-| Код | Тип | Описание |
-|-----|-----|----------|
-| S | Success | Успешное выполнение |
-| E | Error | Ошибка |
-| W | Warning | Предупреждение |
-| I | Info | Информационное сообщение |
-| A | Abort | Критическая ошибка (аварийное завершение) |
+| Code | Type | Description |
+|------|------|-------------|
+| S | Success | Successful execution |
+| E | Error | Error |
+| W | Warning | Warning |
+| I | Info | Information message |
+| A | Abort | Critical error (abort) |
 
-**Методы:**
+**Methods:**
 
-1. **`__init__(bapi_return)`** - принимает dict или list[dict]
-2. **`is_error`** - свойство, True если есть TYPE='E'
-3. **`is_empty`** - свойство, True если нет сообщений
-4. **`error_message`** - свойство, первое сообщение об ошибке
-5. **`message_lines()`** - список всех сообщений в читаемом формате
-6. **`contains(msg_class, msg_number)`** - проверка наличия конкретного сообщения
-7. **`raise_for_error()`** - статический метод, выбрасывает BAPIError при ошибках
+1. **`__init__(bapi_return)`** - accepts dict or list[dict]
+2. **`is_error`** - property, True if TYPE='E' exists
+3. **`is_empty`** - property, True if no messages
+4. **`error_message`** - property, first error message
+5. **`message_lines()`** - list of all messages in readable format
+6. **`contains(msg_class, msg_number)`** - check for specific message
+7. **`raise_for_error()`** - static method, raises BAPIError on errors
 
-**Формат сообщения:**
+**Message Format:**
 ```
 {TYPE}({ID}|{NUMBER}): {MESSAGE}
 ```
 
-Пример:
+Example:
 ```
 Error(SU|001): User TEST001 already exists
 Success: User created successfully
 ```
 
-**Использование:**
+**Usage:**
 
 ```python
-# В UserManager._call_bapi_method()
+# In UserManager._call_bapi_method()
 resp = connection.call('BAPI_USER_CREATE1', **params)
-BAPIError.raise_for_error(resp['RETURN'], resp)  # Выбросит исключение при ошибке
+BAPIError.raise_for_error(resp['RETURN'], resp)  # Raises exception on error
 return resp
 
-# В strust.py
+# In strust.py
 bapiret = BAPIReturn(stat['ET_BAPIRET2'])
 if bapiret.is_error:
     raise BAPIError(bapiret, stat)
@@ -560,70 +560,70 @@ if bapiret.is_error:
 
 ---
 
-## 5. Сводная таблица всех модулей
+## 5. Summary Tables
 
-### 5.1 По категориям
+### 5.1 By Category
 
-| Категория | Количество | Файл | Команда CLI |
-|-----------|------------|------|-------------|
+| Category | Count | File | CLI Command |
+|----------|-------|------|-------------|
 | User Management | 6 | sap/rfc/user.py | `sapcli user` |
 | STRUST/SSL | 13 | sap/rfc/strust.py | `sapcli strust` |
-| **Всего фиксированных** | **19** | - | - |
-| Динамический вызов | ∞ | sap/cli/startrfc.py | `sapcli startrfc` |
+| **Total Fixed** | **19** | - | - |
+| Dynamic Invocation | ∞ | sap/cli/startrfc.py | `sapcli startrfc` |
 
-### 5.2 Алфавитный список всех модулей
+### 5.2 Alphabetical List of All Modules
 
-| № | RFC Module | Категория | Назначение |
-|---|-----------|-----------|-----------|
-| 1 | BAPI_USER_ACTGROUPS_ASSIGN | User | Назначение ролей пользователю |
-| 2 | BAPI_USER_CHANGE | User | Изменение пользователя |
-| 3 | BAPI_USER_CREATE1 | User | Создание пользователя |
-| 4 | BAPI_USER_GET_DETAIL | User | Получение данных пользователя |
-| 5 | BAPI_USER_PROFILES_ASSIGN | User | Назначение профилей пользователю |
-| 6 | ICM_SSL_PSE_CHANGED | STRUST | Уведомление ICM об изменении PSE |
-| 7 | SSFR_GET_ALL_STRUST_IDENTITIES | STRUST | Список всех PSE идентификаций |
-| 8 | SSFR_GET_CERTIFICATELIST | STRUST | Список доверенных сертификатов |
-| 9 | SSFR_GET_CERTREQUEST | STRUST | Получение CSR |
-| 10 | SSFR_GET_OWNCERTIFICATE | STRUST | Получение собственного сертификата |
-| 11 | SSFR_IDENTITY_CREATE | STRUST | Создание PSE идентификации |
-| 12 | SSFR_PARSE_CERTIFICATE | STRUST | Парсинг X.509 сертификата |
-| 13 | SSFR_PSE_CHECK | STRUST | Проверка существования PSE |
-| 14 | SSFR_PSE_CREATE | STRUST | Создание PSE файла |
-| 15 | SSFR_PSE_REMOVE | STRUST | Удаление PSE файла |
-| 16 | SSFR_PSE_UPLOAD_XSTRING | STRUST | Загрузка PSE из бинарных данных |
-| 17 | SSFR_PUT_CERTIFICATE | STRUST | Добавление доверенного сертификата |
-| 18 | SSFR_PUT_CERTRESPONSE | STRUST | Загрузка подписанного Identity Certificate |
-| 19 | SUSR_USER_CHANGE_PASSWORD_RFC | User | Изменение продуктивного пароля |
+| № | RFC Module | Category | Purpose |
+|---|-----------|----------|---------|
+| 1 | BAPI_USER_ACTGROUPS_ASSIGN | User | Assign roles to user |
+| 2 | BAPI_USER_CHANGE | User | Modify user |
+| 3 | BAPI_USER_CREATE1 | User | Create user |
+| 4 | BAPI_USER_GET_DETAIL | User | Get user details |
+| 5 | BAPI_USER_PROFILES_ASSIGN | User | Assign profiles to user |
+| 6 | ICM_SSL_PSE_CHANGED | STRUST | Notify ICM of PSE changes |
+| 7 | SSFR_GET_ALL_STRUST_IDENTITIES | STRUST | List all PSE identities |
+| 8 | SSFR_GET_CERTIFICATELIST | STRUST | List trusted certificates |
+| 9 | SSFR_GET_CERTREQUEST | STRUST | Get CSR |
+| 10 | SSFR_GET_OWNCERTIFICATE | STRUST | Get own certificate |
+| 11 | SSFR_IDENTITY_CREATE | STRUST | Create PSE identity |
+| 12 | SSFR_PARSE_CERTIFICATE | STRUST | Parse X.509 certificate |
+| 13 | SSFR_PSE_CHECK | STRUST | Check PSE existence |
+| 14 | SSFR_PSE_CREATE | STRUST | Create PSE file |
+| 15 | SSFR_PSE_REMOVE | STRUST | Remove PSE file |
+| 16 | SSFR_PSE_UPLOAD_XSTRING | STRUST | Upload PSE from binary |
+| 17 | SSFR_PUT_CERTIFICATE | STRUST | Add trusted certificate |
+| 18 | SSFR_PUT_CERTRESPONSE | STRUST | Upload signed Identity Certificate |
+| 19 | SUSR_USER_CHANGE_PASSWORD_RFC | User | Change productive password |
 
-### 5.3 По частоте использования
+### 5.3 By Usage Frequency
 
-| RFC Module | Количество вызовов в коде | Критичность |
-|-----------|---------------------------|-------------|
-| BAPI_USER_CREATE1 | 1 | Высокая |
-| BAPI_USER_CHANGE | 1 | Высокая |
-| BAPI_USER_GET_DETAIL | 1 | Средняя |
-| SUSR_USER_CHANGE_PASSWORD_RFC | 1 | Высокая |
-| SSFR_PSE_CREATE | 1 | Высокая |
-| SSFR_PUT_CERTIFICATE | 1 | Высокая |
-| SSFR_PARSE_CERTIFICATE | 2 | Средняя |
-| ICM_SSL_PSE_CHANGED | 1 | **Критическая** |
-| Остальные | 1 | Средняя |
+| RFC Module | Code Invocations | Criticality |
+|-----------|------------------|-------------|
+| BAPI_USER_CREATE1 | 1 | High |
+| BAPI_USER_CHANGE | 1 | High |
+| BAPI_USER_GET_DETAIL | 1 | Medium |
+| SUSR_USER_CHANGE_PASSWORD_RFC | 1 | High |
+| SSFR_PSE_CREATE | 1 | High |
+| SSFR_PUT_CERTIFICATE | 1 | High |
+| SSFR_PARSE_CERTIFICATE | 2 | Medium |
+| ICM_SSL_PSE_CHANGED | 1 | **Critical** |
+| Others | 1 | Medium |
 
 ---
 
-## 6. Важные замечания
+## 6. Important Notes
 
-### 6.1 Что НЕ использует RFC
+### 6.1 What Does NOT Use RFC
 
-1. **Transport Management (CTS)** - использует **ADT HTTP API**:
+1. **Transport Management (CTS)** - uses **ADT HTTP API**:
    - `/sap/bc/adt/cts/transportrequests/*`
    - `/sap/bc/adt/cts/transports/*/newreleasejobs`
 
-2. **gCTS (Git-enabled CTS)** - использует **REST API**:
+2. **gCTS (Git-enabled CTS)** - uses **REST API**:
    - `/sap/bc/cts_abapvcs/repository`
    - `/sap/bc/cts_abapvcs/repository/{rid}/*`
 
-3. **Все разработческие операции** - используют **ADT протокол** (HTTP/XML):
+3. **All development operations** - use **ADT protocol** (HTTP/XML):
    - ABAP Classes, Programs, Includes, Interfaces
    - Function Groups, Function Modules
    - Data Definitions (CDS Views)
@@ -634,51 +634,51 @@ if bapiret.is_error:
    - BSP Applications
    - Fiori Launchpad
 
-### 6.2 Когда используется RFC
+### 6.2 When RFC Is Used
 
-RFC используется **только** в следующих случаях:
+RFC is used **only** in the following cases:
 
-1. **Административные задачи без ADT API:**
-   - Управление пользователями
-   - Назначение ролей и профилей
+1. **Administrative tasks without ADT API:**
+   - User management
+   - Role and profile assignment
 
-2. **Системная безопасность:**
-   - Управление PSE и SSL сертификатами
-   - STRUST операции
+2. **System security:**
+   - PSE and SSL certificate management
+   - STRUST operations
 
-3. **Legacy функции:**
-   - Функции, которые исторически доступны только через RFC
-   - Функции, для которых нет современных ADT endpoint'ов
+3. **Legacy functions:**
+   - Functions historically available only via RFC
+   - Functions without modern ADT endpoints
 
-4. **Специфические задачи по запросу:**
-   - Через команду `startrfc` для вызова custom FM
+4. **Specific tasks on demand:**
+   - Via `startrfc` command to invoke custom FMs
 
-### 6.3 Архитектурные принципы
+### 6.3 Architectural Principles
 
-1. **Предпочтение ADT над RFC:**
-   - Где возможно, используется ADT HTTP API
-   - RFC только когда ADT недоступен
+1. **Preference for ADT over RFC:**
+   - Where possible, ADT HTTP API is used
+   - RFC only when ADT is unavailable
 
-2. **Модульная организация:**
-   - Каждая категория RFC вызовов в отдельном файле
-   - Четкое разделение User / STRUST / Custom
+2. **Modular organization:**
+   - Each RFC call category in a separate file
+   - Clear separation: User / STRUST / Custom
 
-3. **Обработка ошибок:**
-   - Все BAPI вызовы проверяются через `BAPIError.raise_for_error()`
-   - Унифицированная обработка BAPIRET2 структур
+3. **Error handling:**
+   - All BAPI calls checked via `BAPIError.raise_for_error()`
+   - Unified BAPIRET2 structure handling
 
 4. **Dependency Injection:**
-   - Все RFC вызовы получают connection как параметр
-   - Нет глобальных connection объектов
+   - All RFC calls receive connection as parameter
+   - No global connection objects
 
 ---
 
-## 7. Примеры полных рабочих процессов
+## 7. Complete Workflow Examples
 
-### 7.1 Создание пользователя с ролями
+### 7.1 Creating User with Roles
 
 ```bash
-# 1. Создать пользователя типа Dialog
+# 1. Create Dialog user
 sapcli user create DEV001 \
   --first-name John \
   --last-name Developer \
@@ -687,59 +687,59 @@ sapcli user create DEV001 \
   --password SecurePass123! \
   --password-productive
 
-# Внутри выполняется:
-# - BAPI_USER_CREATE1 (с dummy паролем)
-# - SUSR_USER_CHANGE_PASSWORD_RFC (установка реального пароля)
+# Internally executes:
+# - BAPI_USER_CREATE1 (with dummy password)
+# - SUSR_USER_CHANGE_PASSWORD_RFC (set real password)
 
-# 2. Назначить роли
+# 2. Assign roles
 sapcli user assign-roles DEV001 Z_DEVELOPER SAP_BC_BASIS_ADMIN
 
-# Внутри выполняется:
+# Internally executes:
 # - BAPI_USER_ACTGROUPS_ASSIGN
 ```
 
-### 7.2 Настройка SSL сертификата
+### 7.2 SSL Certificate Setup
 
 ```bash
-# 1. Создать PSE
+# 1. Create PSE
 sapcli strust createpse server_standard \
   --algorithm RSAwithSHA256 \
   --key-length 4096 \
   --dn "CN=myserver.company.com,O=My Company,C=US"
 
-# Внутри выполняется:
+# Internally executes:
 # - SSFR_IDENTITY_CREATE
 # - SSFR_PSE_CREATE
 
-# 2. Получить CSR
+# 2. Get CSR
 sapcli strust getcsr server_standard > server.csr
 
-# Внутри выполняется:
+# Internally executes:
 # - SSFR_GET_CERTREQUEST
 
-# 3. (Подписать CSR в CA - внешний процесс)
+# 3. (Sign CSR at CA - external process)
 
-# 4. Загрузить подписанный сертификат
+# 4. Upload signed certificate
 sapcli strust putcertresponse server_standard server-signed.crt
 
-# Внутри выполняется:
+# Internally executes:
 # - SSFR_PUT_CERTRESPONSE
 
-# 5. Добавить CA сертификат в trust list
+# 5. Add CA certificate to trust list
 sapcli strust putcertificate server_standard ca-root.crt
 
-# Внутри выполняется:
+# Internally executes:
 # - SSFR_PUT_CERTIFICATE
 
-# 6. Уведомить ICM
+# 6. Notify ICM
 sapcli strust icm-notify
 
-# Внутри выполняется:
+# Internally executes:
 # - ICM_SSL_PSE_CHANGED
 ```
 
 ---
 
-**Документ подготовлен на основе анализа исходного кода проекта oisee/sapcli**
-**Все RFC вызовы найдены и задокументированы**
-**Последнее обновление:** 2025-11-30
+**Document prepared based on source code analysis of oisee/sapcli project**
+**All RFC calls found and documented**
+**Last updated:** 2025-11-30
